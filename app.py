@@ -1,67 +1,35 @@
-from flask import Flask, jsonify, request
-from werkzeug.exceptions import HTTPException
-from authenticate import authenticate
-from scraper import start_scraper
-from database import get_results, get_status, save_scrape_job
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from flask import Flask, request, jsonify, send_from_directory
+import os
+from database import check_credentials
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='client')
 
-# Configure rate limiting
-limiter = Limiter(
-    app,
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
-)
+DEBUG = False
+PORT = 80
 
-@app.errorhandler(HTTPException)
-def handle_exception(e):
-    """Return JSON instead of HTML for HTTP errors."""
-    response = e.get_response()
-    response.data = jsonify({
-        "code": e.code,
-        "name": e.name,
-        "description": e.description,
-    })
-    response.content_type = "application/json"
-    return response
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'error': 'Missing username or password'}), 400
+    
+    authenticated = check_credentials(username, password)
+    
+    if authenticated:
+        return jsonify({'message': 'User authenticated successfully'}), 200
+    else:
+        return jsonify({'error': 'Invalid username or password'}), 401
 
-@app.route('/start', methods=['POST'])
-@limiter.limit("10 per minute")
-def start():
-    if not authenticate(request):
-        return jsonify({"error": "Unauthorized"}), 401
+@app.route('/<path:path>')
+def static_proxy(path):
+    return send_from_directory(app.static_folder, path)
 
-    data = request.json
-    try:
-        job_id = start_scraper(data)
-        save_scrape_job(job_id, data)
-        return jsonify({"message": "Scrape started", "job_id": job_id}), 202
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/results/<job_id>', methods=['GET'])
-def results(job_id):
-    if not authenticate(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
-    try:
-        results = get_results(job_id)
-        return jsonify(results), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/status/<job_id>', methods=['GET'])
-def status(job_id):
-    if not authenticate(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
-    try:
-        status = get_status(job_id)
-        return jsonify({"job_id": job_id, "status": status}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+@app.route('/')
+def root():
+    return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=DEBUG, host='0.0.0.0', port=PORT)
