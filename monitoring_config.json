@@ -1,0 +1,39 @@
+{
+  "monitoring": {
+    "application": {
+      "name": "Web Scraper and Crawler Application",
+      "version": "1.0.0"
+    },
+    "logging": {
+      "level": "INFO",
+      "file": "app.log",
+      "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+      "rotation": "daily"
+    },
+    "performance": {
+      "metrics": ["cpu_usage", "memory_usage", "response_times"],
+      "collection_interval": "5s"
+    },
+    "error_tracking": {
+      "enabled": true,
+      "service": "Sentry",
+      "dsn": "YOUR_SENTRY_DSN_HERE"
+    },
+    "uptime": {
+      "endpoint": "/status",
+      "check_interval": "30s"
+    },
+    "alerting": {
+      "enabled": true,
+      "channels": ["email", "sms"],
+      "recipients": {
+        "email": ["admin@example.com"],
+        "sms": ["+1234567890"]
+      },
+      "thresholds": {
+        "response_time": "3s",
+        "error_rate": "5%"
+      }
+    }
+  }
+}
