@@ -1,4 +1,4 @@
-# Use the official Python runtime as a parent image
+# Dockerfile
 FROM python:3.8-slim
 
 # Set the working directory in the container
@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 80
 
 # Define environment variable
-ENV NAME World
+ENV DEBUG=False
 
 # Run app.py when the container launches
-CMD ["python", "app.py"]
+CMD ["gunicorn", "-b", "0.0.0.0:80", "app:app"]
